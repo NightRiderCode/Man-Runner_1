@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Man Runner</title>
+<style>
+  body { margin:0; overflow:hidden; background:#87CEEB; font-family:sans-serif; }
+  canvas { display:block; margin:auto; background:#87CEEB; }
+  #loadingScreen {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    background:#333; color:white; display:flex; flex-direction:column;
+    justify-content:center; align-items:center; font-size:28px; z-index:10;
+  }
+  #loadingScreen h1 { font-size:48px; margin:0; }
+  #loadingScreen h3 { font-size:24px; margin:10px 0 20px 0; }
+  #characterSelect { margin-top:20px; }
+  button {
+    padding:10px 20px; font-size:20px; margin:5px; cursor:pointer;
+    border:none; border-radius:8px; background:#1e90ff; color:white;
+  }
+  #score {
+    position:absolute; top:10px; left:10px; font-size:24px; color:yellow; z-index:5;
+  }
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <h1>Man Runner</h1>
+  <h3>Made by Sayed Arshan Qamar</h3>
+  <div id="characterSelect">
+    <p>Select your character:</p>
+    <button data-src="images/human1.png">Human 1</button>
+    <button data-src="images/human2.png">Human 2</button>
+    <button data-src="images/human3.png">Human 3</button>
+    <button data-src="images/human4.png">Human 4</button>
+    <button data-src="images/human5.png">Human 5</button>
+  </div>
+  <button id="playButton">Play</button>
+</div>
+
+<div id="score">Score: 0</div>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let gameStarted = false;
+let score = 0;
+const gravity = 0.8;
+
+// Player image
+let playerImg = new Image();
+playerImg.src = "images/human1.png"; // default
+
+// Obstacle image
+const obstacleImg = new Image();
+obstacleImg.src = "images/obstacle.png";
+
+// Character selection
+const charButtons = document.querySelectorAll('#characterSelect button');
+charButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    playerImg.src = btn.getAttribute('data-src');
+  });
+});
+
+class Player {
+  constructor(){
+    this.width = 50;
+    this.height = 70;
+    this.x = 50;
+    this.y = canvas.height - this.height - 10;
+    this.dy = 0;
+    this.jumpPower = -15;
+    this.onGround = true;
+  }
+  draw(){ ctx.drawImage(playerImg, this.x, this.y, this.width, this.height); }
+  update(){
+    this.dy += gravity;
+    this.y += this.dy;
+    if(this.y + this.height > canvas.height - 10){
+      this.y = canvas.height - this.height - 10;
+      this.dy = 0;
+      this.onGround = true;
+    }
+    this.draw();
+  }
+  jump(){ if(this.onGround){ this.dy = this.jumpPower; this.onGround = false; } }
+}
+
+class Obstacle {
+  constructor(x,y){
+    this.x = x;
+    this.y = y;
+    this.width = 50;
+    this.height = 50;
+  }
+  draw(){ ctx.drawImage(obstacleImg, this.x, this.y, this.width, this.height); }
+  update(){
+    if(!gameStarted) return;
+    this.x -= 5;
+    if(this.x + this.width < 0){
+      this.x = canvas.width + Math.random()*300 + 200;
+      score++;
+      document.getElementById('score').innerText = "Score: "+score;
+    }
+    this.draw();
+  }
+}
+
+const player = new Player();
+const obstacles = [new Obstacle(900, canvas.height-60), new Obstacle(1300, canvas.height-60)];
+
+let keys = {};
+window.addEventListener('keydown', e=>{
+  keys[e.key] = true;
+  if((e.key===' ' || e.key==='ArrowUp') && gameStarted) player.jump();
+});
+window.addEventListener('keyup', e=> keys[e.key]=false);
+
+// Play button click
+document.getElementById('playButton').addEventListener('click', ()=>{
+  document.getElementById('loadingScreen').style.display='none';
+  gameStarted = true;
+  animate();
+});
+
+function animate(){
+  if(!gameStarted) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Draw floor
+  ctx.fillStyle = '#654321';
+  ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
+
+  player.update();
+  obstacles.forEach(o=>{
+    o.update();
+    // collision
+    if(player.x < o.x + o.width && player.x + player.width > o.x &&
+       player.y < o.y + o.height && player.y + player.height > o.y){
+         alert("Game Over! Score: "+score);
+         location.reload();
+    }
+  });
+  requestAnimationFrame(animate);
+}
+</script>
+
+</body>
+</html>
